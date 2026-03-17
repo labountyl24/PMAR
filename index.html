@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PMAR Triage Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f7f6f2; --surface: #fff; --surface2: #f1f0ec;
+    --border: #e2e0d8; --border2: #cccac0;
+    --text: #1a1916; --text2: #6b6860; --text3: #9e9c94;
+    --blue-bg: #e8f1fb; --blue-text: #1a4f8c;
+    --amber-bg: #fef3dc; --amber-text: #7a4d0a;
+    --red-bg: #fdeaea; --red-text: #8c1f1f;
+    --accent: #2a5caa; --radius: 10px; --radius-sm: 6px;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1rem; }
+  .page { max-width: 680px; margin: 0 auto; }
+  .masthead { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+  .logo { width: 40px; height: 40px; background: var(--accent); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .logo svg { width: 22px; height: 22px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
+  .masthead-text h1 { font-size: 20px; font-weight: 500; letter-spacing: -0.02em; }
+  .masthead-text p { font-size: 13px; color: var(--text2); margin-top: 2px; }
+  .examples { margin-bottom: 1.25rem; }
+  .examples-label { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 12px; font-family: 'DM Sans', sans-serif; padding: 5px 11px; border: 1px solid var(--border2); border-radius: 20px; cursor: pointer; color: var(--text2); background: var(--surface); }
+  .chip:hover { background: var(--surface2); color: var(--text); }
+  .input-block textarea { width: 100%; min-height: 120px; resize: vertical; font-size: 14px; font-family: 'DM Sans', sans-serif; line-height: 1.6; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
+  .input-block textarea:focus { outline: none; border-color: var(--accent); }
+  .input-block textarea::placeholder { color: var(--text3); }
+  .char-count { font-size: 12px; color: var(--text3); text-align: right; margin-top: 5px; margin-bottom: 1rem; }
+  .btn-row { display: flex; gap: 8px; margin-bottom: 1.75rem; }
+  .btn-analyze { background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); padding: 10px 22px; font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; }
+  .btn-analyze:hover { opacity: 0.88; }
+  .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-clear { background: transparent; color: var(--text2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 16px; font-size: 14px; font-family: 'DM Sans', sans-serif; cursor: pointer; }
+  .btn-clear:hover { background: var(--surface2); }
+  .spinner-wrap { display: flex; align-items: center; gap: 10px; padding: 1.5rem; color: var(--text2); font-size: 14px; }
+  .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.75s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .result-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; animation: fadeUp 0.25s ease; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .result-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .badge { font-size: 12px; font-weight: 500; padding: 4px 11px; border-radius: 20px; white-space: nowrap; }
+  .badge-pmar { background: var(--blue-bg); color: var(--blue-text); }
+  .badge-evisit { background: var(--amber-bg); color: var(--amber-text); }
+  .badge-urgent { background: var(--red-bg); color: var(--red-text); }
+  .badge-unclear { background: var(--surface2); color: var(--text2); }
+  .msg-type { font-size: 13px; color: var(--text2); }
+  .result-body { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+  .section-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+  .section-text { font-size: 14px; color: var(--text); line-height: 1.65; }
+  .draft-box { background: var(--surface2); border-radius: var(--radius-sm); padding: 13px 15px; font-size: 14px; line-height: 1.7; color: var(--text); white-space: pre-wrap; border-left: 3px solid var(--border2); }
+  .copy-btn { margin-top: 8px; background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 14px; font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--text2); cursor: pointer; }
+  .copy-btn:hover { background: var(--surface2); }
+  .flag-pill { display: inline-flex; align-items: center; font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 20px; }
+  .flag-billing { background: var(--blue-bg); color: var(--blue-text); }
+  .flag-clinical { background: var(--amber-bg); color: var(--amber-text); }
+  .flag-emergency { background: var(--red-bg); color: var(--red-text); }
+  .divider { border: none; border-top: 1px solid var(--border); }
+  .history-block { margin-top: 2rem; }
+  .history-label { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .history-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .history-item:last-child { border-bottom: none; }
+  .history-snippet { font-size: 13px; color: var(--text2); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .error-box { background: var(--red-bg); color: var(--red-text); border: 1px solid #f5c0c0; border-radius: var(--radius); padding: 14px 16px; font-size: 14px; line-height: 1.6; }
+  .hidden { display: none; }
+  footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: 12px; color: var(--text3); text-align: center; line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="masthead">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M9 12h6M12 9v6M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"/></svg>
+    </div>
+    <div class="masthead-text">
+      <h1>PMAR Triage Assistant</h1>
+      <p>Classify patient messages, route correctly, and generate staff replies</p>
+    </div>
+  </div>
+
+  <div class="examples">
+    <div class="examples-label">Quick examples</div>
+    <div class="chips">
+      <button class="chip" onclick="loadExample('My knee has been swollen and painful for 3 days and I can barely walk. What should I do?')">Swollen knee</button>
+      <button class="chip" onclick="loadExample('Hi, I need a refill on my lisinopril 10mg. I have been stable on it for 2 years.')">Routine refill</button>
+      <button class="chip" onclick="loadExample('I have been feeling very depressed lately and having thoughts of hurting myself.')">Mental health concern</button>
+      <button class="chip" onclick="loadExample('Can you send over my immunization records to my son\'s school? The fax number is 612-555-0192.')">Records request</button>
+      <button class="chip" onclick="loadExample('I started my new blood pressure medication yesterday and now I have a bad rash all over my chest.')">Med reaction</button>
+      <button class="chip" onclick="loadExample('I don\'t see any results for my thyroid. Was this missed?')">Missing results</button>
+    </div>
+  </div>
+
+  <div class="input-block">
+    <textarea id="msgInput" placeholder="Paste or type the patient's PMAR message here..."></textarea>
+  </div>
+  <div class="char-count" id="charCount">0 characters</div>
+
+  <div class="btn-row">
+    <button class="btn-analyze" id="analyzeBtn" onclick="analyze()">Analyze message</button>
+    <button class="btn-clear" onclick="clearAll()">Clear</button>
+  </div>
+
+  <div id="output"></div>
+
+  <div id="historyBlock" class="history-block hidden">
+    <div class="history-label">Session history</div>
+    <div id="historyList"></div>
+  </div>
+
+  <footer>
+    PMAR Triage Assistant &nbsp;·&nbsp; Powered by Claude (Anthropic)<br>
+    For internal clinical staff use only. Not a substitute for clinical judgment.
+  </footer>
+</div>
+
+<script>
+const msgInput = document.getElementById('msgInput');
+const charCount = document.getElementById('charCount');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const output = document.getElementById('output');
+const historyBlock = document.getElementById('historyBlock');
+const historyList = document.getElementById('historyList');
+const sessionHistory = [];
+
+msgInput.addEventListener('input', () => { charCount.textContent = msgInput.value.length + ' characters'; });
+function loadExample(t) { msgInput.value = t; charCount.textContent = t.length + ' characters'; msgInput.focus(); }
+function clearAll() { msgInput.value = ''; charCount.textContent = '0 characters'; output.innerHTML = ''; }
+function getBadgeClass(r) { return r==='PMAR'?'badge-pmar':r==='E-Visit'?'badge-evisit':r==='Urgent'?'badge-urgent':'badge-unclear'; }
+function getLabel(r) { return r==='PMAR'?'Appropriate PMAR':r==='E-Visit'?'Should be E-Visit':r==='Urgent'?'Urgent — escalate':'Needs clarification'; }
+function getFlagHtml(flag) {
+  if (!flag || flag==='null') return '';
+  const map = { billing_opportunity:['flag-billing','Billing opportunity — may qualify as a billable E-Visit'], clinical_review_needed:['flag-clinical','Clinical review needed'], emergency:['flag-emergency','Emergency — escalate immediately'] };
+  const [cls,text] = map[flag]||['flag-clinical',flag];
+  return `<hr class="divider"><div><div class="section-label">Flag</div><span class="flag-pill ${cls}">${text}</span></div>`;
+}
+
+async function analyze() {
+  const message = msgInput.value.trim();
+  if (!message) { alert('Please enter a patient message.'); return; }
+  analyzeBtn.disabled = true;
+  output.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><span>Analyzing message...</span></div>';
+  try {
+    const resp = await fetch('/api/triage', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
+    const r = await resp.json();
+    if (!resp.ok) throw new Error(r.error || 'Server error');
+    renderResult(r);
+    sessionHistory.unshift({ snippet: message.substring(0,70)+(message.length>70?'...':''), routing: r.routing });
+    renderHistory();
+  } catch(err) {
+    output.innerHTML = `<div class="error-box"><strong>Error:</strong> ${err.message}</div>`;
+  }
+  analyzeBtn.disabled = false;
+}
+
+function renderResult(r) {
+  output.innerHTML = `
+    <div class="result-card">
+      <div class="result-header">
+        <span class="badge ${getBadgeClass(r.routing)}">${getLabel(r.routing)}</span>
+        <span class="msg-type">${r.message_type}</span>
+      </div>
+      <div class="result-body">
+        <div><div class="section-label">Reasoning</div><div class="section-text">${r.reasoning}</div></div>
+        <hr class="divider">
+        <div><div class="section-label">Suggested action for staff</div><div class="section-text">${r.suggested_action}</div></div>
+        <hr class="divider">
+        <div>
+          <div class="section-label">Draft patient reply</div>
+          <div class="draft-box" id="draftText">${r.draft_reply}</div>
+          <button class="copy-btn" onclick="copyReply()">Copy reply</button>
+        </div>
+        ${getFlagHtml(r.flag)}
+      </div>
+    </div>`;
+}
+
+function copyReply() {
+  navigator.clipboard.writeText(document.getElementById('draftText').textContent).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!'; setTimeout(()=>{ btn.textContent='Copy reply'; }, 1500);
+  });
+}
+
+function renderHistory() {
+  if (!sessionHistory.length) return;
+  historyBlock.classList.remove('hidden');
+  historyList.innerHTML = sessionHistory.slice(0,8).map(h=>`
+    <div class="history-item">
+      <span class="badge ${getBadgeClass(h.routing)}" style="font-size:11px;">${h.routing}</span>
+      <span class="history-snippet">${h.snippet}</span>
+    </div>`).join('');
+}
+</script>
+</body>
+</html>
